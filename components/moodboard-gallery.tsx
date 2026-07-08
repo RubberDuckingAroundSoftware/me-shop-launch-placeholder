@@ -15,7 +15,15 @@ const moodboards: MoodboardImage[] = [
   },
   {
     src: "/moodboards/01-the-archive.jpg",
-    alt: "Moodboard with vintage books, New Balance sneakers, fresh vegetables, and handwritten notes",
+    alt: "Moodboard with blank linen-bound vintage books, Nike Air Max 1 sneakers in terracotta and forest green, fabric swatches, and brushstrokes",
+  },
+  {
+    src: "/moodboards/04-mens-business-1.jpg",
+    alt: "Men's business casual quiet luxury moodboard with tailored wool blazer, oxford shirt, suede loafers, and minimalist watch without text",
+  },
+  {
+    src: "/moodboards/05-mens-business-2.jpg",
+    alt: "Men's modern creative director moodboard with olive mock-neck sweater, suede sneakers, blank leather folio, and brass fountain pen without text",
   },
 ];
 
