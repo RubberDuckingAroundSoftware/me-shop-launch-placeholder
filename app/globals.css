@@ -1,0 +1,56 @@
+@import "tailwindcss";
+
+:root {
+  --color-bg: #F5F0EB;
+  --color-bg-dark: #2C2421;
+  --color-text-primary: #2C2421;
+  --color-text-body: #4A4340;
+  --color-text-muted: #8A8280;
+  --color-text-light: #E8E0D8;
+  --color-accent: #285331;
+  --color-accent-light: #61A871;
+  --color-accent-dark: #1E3E24;
+  --color-border: #D4CCC4;
+  --color-fortune-bar: #285331;
+}
+
+@theme inline {
+  --color-bg: var(--color-bg);
+  --color-bg-dark: var(--color-bg-dark);
+  --color-text-primary: var(--color-text-primary);
+  --color-text-body: var(--color-text-body);
+  --color-text-muted: var(--color-text-muted);
+  --color-text-light: var(--color-text-light);
+  --color-accent: var(--color-accent);
+  --color-accent-light: var(--color-accent-light);
+  --color-accent-dark: var(--color-accent-dark);
+  --color-border: var(--color-border);
+  --color-fortune-bar: var(--color-fortune-bar);
+  --font-serif: var(--font-playfair), serif;
+  --font-sans: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+}
+
+body {
+  background-color: var(--color-bg);
+  color: var(--color-text-body);
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+  margin: 0;
+  padding: 0;
+  overflow-x: hidden;
+}
+
+/* Custom utility styles for exact spec matching and gallery aesthetics */
+.font-playfair {
+  font-family: var(--font-playfair), serif;
+}
+
+.font-playfair-italic {
+  font-family: var(--font-playfair), serif;
+  font-style: italic;
+}
+
+/* Subtle editorial grain background */
+.bg-artsy-grain {
+  background-image: radial-gradient(rgba(40, 83, 49, 0.04) 1px, transparent 0);
+  background-size: 24px 24px;
+}
