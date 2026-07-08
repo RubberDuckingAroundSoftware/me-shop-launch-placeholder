@@ -31,6 +31,11 @@ export function MoodboardGallery() {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
 
+  // Touch swipe state for mobile
+  const [touchStartX, setTouchStartX] = useState<number | null>(null);
+  const [touchEndX, setTouchEndX] = useState<number | null>(null);
+  const minSwipeDistance = 40; // minimum distance in px to trigger swipe
+
   // Auto-rotate every 8s
   useEffect(() => {
     if (isPaused) return;
@@ -60,6 +65,31 @@ export function MoodboardGallery() {
     });
   }, []);
 
+  // Mobile swipe event handlers
+  const onTouchStart = (e: React.TouchEvent) => {
+    setTouchEndX(null);
+    setTouchStartX(e.targetTouches[0].clientX);
+  };
+
+  const onTouchMove = (e: React.TouchEvent) => {
+    setTouchEndX(e.targetTouches[0].clientX);
+  };
+
+  const onTouchEnd = () => {
+    if (!touchStartX || !touchEndX) return;
+    const distance = touchStartX - touchEndX;
+    const isLeftSwipe = distance > minSwipeDistance;
+    const isRightSwipe = distance < -minSwipeDistance;
+
+    if (isLeftSwipe) {
+      // Swipe left -> Next image
+      setCurrentIndex((prev) => (prev + 1) % moodboards.length);
+    } else if (isRightSwipe) {
+      // Swipe right -> Previous image
+      setCurrentIndex((prev) => (prev - 1 + moodboards.length) % moodboards.length);
+    }
+  };
+
   return (
     <div
       className="w-full max-w-md lg:max-w-none flex flex-col items-center select-none"
@@ -70,15 +100,21 @@ export function MoodboardGallery() {
       <div className="relative w-full transform rotate-1 hover:rotate-0 transition-all duration-700 ease-out group">
         <div className="p-3 sm:p-4 bg-white rounded-2xl shadow-lg hover:shadow-2xl border border-[var(--color-border)]/70 transition-all duration-700 relative">
 
-          {/* Image Container with 4:5 Aspect Ratio */}
-          <div className="relative w-full aspect-[4/5] rounded-xl overflow-hidden bg-[var(--color-border)]/20">
+          {/* Image Container with 4:5 Aspect Ratio and Swipe Handlers */}
+          <div
+            className="relative w-full aspect-[4/5] rounded-xl overflow-hidden bg-[var(--color-border)]/20 touch-pan-y"
+            onTouchStart={onTouchStart}
+            onTouchMove={onTouchMove}
+            onTouchEnd={onTouchEnd}
+          >
             {moodboards.map((item, idx) => {
               const isActive = idx === currentIndex;
               return (
                 <div
                   key={item.src}
-                  className={`absolute inset-0 w-full h-full transition-opacity duration-600 ease-in-out ${isActive ? "opacity-100 z-10" : "opacity-0 z-0 pointer-events-none"
-                    }`}
+                  className={`absolute inset-0 w-full h-full transition-opacity duration-600 ease-in-out ${
+                    isActive ? "opacity-100 z-10" : "opacity-0 z-0 pointer-events-none"
+                  }`}
                 >
                   <Image
                     src={item.src}
@@ -122,26 +158,6 @@ export function MoodboardGallery() {
             </button>
           </div>
         </div>
-      </div>
-
-      {/* Progress Dots below the card */}
-      <div className="mt-5 flex items-center justify-center gap-2 z-10">
-        {moodboards.map((item, idx) => {
-          const isActive = idx === currentIndex;
-          return (
-            <button
-              key={item.src}
-              type="button"
-              onClick={() => setCurrentIndex(idx)}
-              aria-label={`View composition ${idx + 1}`}
-              title={`View composition ${idx + 1}`}
-              className={`w-2 h-2 sm:w-2.5 sm:h-2.5 rounded-full transition-all duration-300 cursor-pointer ${isActive
-                ? "bg-[var(--color-accent)] scale-125 shadow-xs"
-                : "border border-[var(--color-accent)]/50 bg-transparent hover:bg-[var(--color-accent)]/30"
-                }`}
-            />
-          );
-        })}
       </div>
     </div>
   );
