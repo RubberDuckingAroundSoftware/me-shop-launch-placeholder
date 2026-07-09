@@ -149,6 +149,19 @@ export function Hero() {
 
   const longStayTimer = useRef<NodeJS.Timeout | null>(null);
   const hasTriggeredLongStay = useRef(false);
+  const hasShownNightOwl = useRef(false);
+  const recentIndicesRef = useRef<number[]>([0]);
+  const hasShownIsComplete = useRef(false);
+
+  useEffect(() => {
+    try {
+      if (typeof window !== "undefined" && localStorage.getItem("meshop_100_msg_shown") === "true") {
+        hasShownIsComplete.current = true;
+      }
+    } catch {
+      // ignore storage errors
+    }
+  }, []);
 
   const transitionTo = useCallback((nextIndexInput: number | ((prev: number) => number)) => {
     setIsTransitioning(true);
@@ -156,10 +169,31 @@ export function Hero() {
       setCurrentIndex((prev) => {
         const nextIdx = typeof nextIndexInput === "function" ? nextIndexInput(prev) : nextIndexInput;
 
-        // Check for Night Owl override (1 in 6 chance between midnight and 5am)
+        // If isComplete was reached, mark the message as shown once the user transitions away from it
+        if (isComplete && !hasShownIsComplete.current) {
+          hasShownIsComplete.current = true;
+          try {
+            if (typeof window !== "undefined") {
+              localStorage.setItem("meshop_100_msg_shown", "true");
+            }
+          } catch {
+            // ignore storage errors
+          }
+        }
+
+        // Track recently shown indices so we don't repeat them during random jumps
+        if (nextIdx !== prev && !recentIndicesRef.current.includes(nextIdx)) {
+          recentIndicesRef.current.push(nextIdx);
+          if (recentIndicesRef.current.length > Math.floor(moodboards.length * 0.75)) {
+            recentIndicesRef.current.shift();
+          }
+        }
+
+        // Check for Night Owl override (1 in 6 chance between midnight and 5am, only shown ONCE so it never repeats)
         const hour = new Date().getHours();
         const isNightOwlHour = hour >= 0 && hour < 5;
-        if (isNightOwlHour && Math.random() < 1 / 6) {
+        if (isNightOwlHour && !hasShownNightOwl.current && Math.random() < 1 / 6) {
+          hasShownNightOwl.current = true;
           setNightOwlOverride("the thing you add to cart at 2am and don't regret in the morning");
         } else {
           setNightOwlOverride(null);
@@ -169,7 +203,7 @@ export function Hero() {
       });
       setIsTransitioning(false);
     }, 400);
-  }, []);
+  }, [isComplete]);
 
   // Mark seen on every unique image display when normal rotation is active
   useEffect(() => {
@@ -193,7 +227,19 @@ export function Hero() {
     setSpeedReaderActive(true);
     setTimeout(() => {
       setSpeedReaderActive(false);
-      transitionTo((prev) => Math.floor(Math.random() * moodboards.length));
+      transitionTo((prev) => {
+        const candidates = moodboards
+          .map((_, i) => i)
+          .filter((i) => i !== prev && !recentIndicesRef.current.includes(i));
+        if (candidates.length > 0) {
+          return candidates[Math.floor(Math.random() * candidates.length)];
+        }
+        let nextIdx = prev;
+        while (nextIdx === prev && moodboards.length > 1) {
+          nextIdx = Math.floor(Math.random() * moodboards.length);
+        }
+        return nextIdx;
+      });
     }, 4000);
   }, [transitionTo]);
 
@@ -236,8 +282,8 @@ export function Hero() {
   const baseCatchphrase = moodboards[currentIndex]?.catchphrase || "exactly the right one";
   const effectiveCatchphrase = speedReaderActive
     ? "patience."
-    : isComplete
-      ? "Curiosity is the new luxury."
+    : isComplete && !hasShownIsComplete.current
+      ? "Curiosity is the new luxury. You just shuffled through 100 images. Thank you!"
       : nightOwlOverride || baseCatchphrase;
 
   return (
@@ -258,9 +304,8 @@ export function Hero() {
                 meShop is the space between wanting something and finding{" "}
                 <span className="inline-block min-h-[3.5rem] sm:min-h-[4rem] align-middle my-1">
                   <span
-                    className={`italic font-serif text-[var(--color-text-primary)] text-xl sm:text-2xl transition-opacity duration-400 ease-in-out ${
-                      isTransitioning ? "opacity-0" : "opacity-100"
-                    }`}
+                    className={`italic font-serif text-[var(--color-text-primary)] text-xl sm:text-2xl transition-opacity duration-400 ease-in-out ${isTransitioning ? "opacity-0" : "opacity-100"
+                      }`}
                   >
                     {longStayActive ? (
                       <LetterMorph

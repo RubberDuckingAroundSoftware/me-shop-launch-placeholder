@@ -193,6 +193,17 @@ export function MoodboardGallery({
   // Speed Reader tracking refs
   const shuffleTimestamps = useRef<number[]>([]);
   const hasTriggeredSpeedReader = useRef(false);
+  const recentIndicesRef = useRef<number[]>([0]);
+
+  // Keep track of shown images so manual shuffle doesn't repeat recent ones
+  useEffect(() => {
+    if (typeof currentIndex === "number" && !recentIndicesRef.current.includes(currentIndex)) {
+      recentIndicesRef.current.push(currentIndex);
+      if (recentIndicesRef.current.length > Math.floor(moodboards.length * 0.75)) {
+        recentIndicesRef.current.shift();
+      }
+    }
+  }, [currentIndex]);
 
   // Auto-rotate every 8s when running uncontrolled
   useEffect(() => {
@@ -240,6 +251,12 @@ export function MoodboardGallery({
 
     triggerTransition((prev) => {
       if (moodboards.length <= 1) return prev;
+      const candidates = moodboards
+        .map((_, i) => i)
+        .filter((i) => i !== prev && !recentIndicesRef.current.includes(i));
+      if (candidates.length > 0) {
+        return candidates[Math.floor(Math.random() * candidates.length)];
+      }
       let nextIndex = prev;
       while (nextIndex === prev) {
         nextIndex = Math.floor(Math.random() * moodboards.length);
