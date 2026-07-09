@@ -136,14 +136,14 @@ export function MoodboardGallery() {
   const [touchEndX, setTouchEndX] = useState<number | null>(null);
   const minSwipeDistance = 40; // minimum distance in px to trigger swipe
 
-  // Auto-rotate every 8s
+  // Auto-rotate every 8s. Automatically resets counter on any manual shuffle or swipe (`currentIndex` change)
   useEffect(() => {
     if (isPaused) return;
     const interval = setInterval(() => {
       setCurrentIndex((prev) => (prev + 1) % moodboards.length);
     }, 8000);
     return () => clearInterval(interval);
-  }, [isPaused]);
+  }, [isPaused, currentIndex]);
 
   // Smart preloading: preload the next 2 and previous 1 images relative to currentIndex so crossfades are instant without downloading all 100+ JPEGs on mount
   useEffect(() => {
@@ -233,7 +233,7 @@ export function MoodboardGallery() {
           {/* Image Container with 4:5 Aspect Ratio, Swipe Handlers, and Click/Tap to Shuffle */}
           <div
             className="relative w-full aspect-[4/5] rounded-xl overflow-hidden bg-[var(--color-border)]/20 touch-pan-y cursor-pointer"
-            title="Click or tap to shuffle composition"
+            title="Click or tap to shuffle moodboard"
             onTouchStart={onTouchStart}
             onTouchMove={onTouchMove}
             onTouchEnd={onTouchEnd}
@@ -244,9 +244,8 @@ export function MoodboardGallery() {
               return (
                 <div
                   key={item.src}
-                  className={`absolute inset-0 w-full h-full transition-opacity duration-600 ease-in-out ${
-                    isActive ? "opacity-100 z-10" : "opacity-0 z-0 pointer-events-none"
-                  }`}
+                  className={`absolute inset-0 w-full h-full transition-opacity duration-600 ease-in-out ${isActive ? "opacity-100 z-10" : "opacity-0 z-0 pointer-events-none"
+                    }`}
                 >
                   <Image
                     src={item.src}
