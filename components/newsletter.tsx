@@ -3,7 +3,7 @@ import { SubscribeForm } from "./subscribe-form";
 
 export function Newsletter() {
   return (
-    <section className="bg-gradient-to-b from-[var(--color-bg-dark)] to-[#1A1F1C] text-[var(--color-text-light)] py-20 sm:py-28 px-6 sm:px-8 border-t border-b border-[#285331]/30 relative overflow-hidden">
+    <section id="newsletter" className="bg-gradient-to-b from-[var(--color-bg-dark)] to-[#1A1F1C] text-[var(--color-text-light)] py-20 sm:py-28 px-6 sm:px-8 border-t border-b border-[#285331]/30 relative overflow-hidden">
       {/* Artsy background accent light */}
       <div className="absolute top-0 right-0 w-96 h-96 bg-[#285331]/10 rounded-full blur-3xl pointer-events-none"></div>
 

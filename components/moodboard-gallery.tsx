@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import Image from "next/image";
 
 export interface MoodboardImage {
@@ -141,6 +141,12 @@ export interface MoodboardGalleryProps {
   isTransitioning?: boolean;
   onTransitionTo?: (nextIndex: number | ((prev: number) => number)) => void;
   onPauseChange?: (paused: boolean) => void;
+  // Easter eggs:
+  speedReaderActive?: boolean;
+  onSpeedReaderTrigger?: () => void;
+  isComplete?: boolean;
+  count?: number;
+  showCounter?: boolean;
 }
 
 export function MoodboardGallery({
@@ -148,6 +154,11 @@ export function MoodboardGallery({
   isTransitioning: controlledTransitioning,
   onTransitionTo,
   onPauseChange,
+  speedReaderActive = false,
+  onSpeedReaderTrigger,
+  isComplete = false,
+  count = 0,
+  showCounter = false,
 }: MoodboardGalleryProps = {}) {
   const [internalIndex, setInternalIndex] = useState(0);
   const [internalTransitioning, setInternalTransitioning] = useState(false);
@@ -179,14 +190,18 @@ export function MoodboardGallery({
   const [touchEndX, setTouchEndX] = useState<number | null>(null);
   const minSwipeDistance = 40; // minimum distance in px to trigger swipe
 
+  // Speed Reader tracking refs
+  const shuffleTimestamps = useRef<number[]>([]);
+  const hasTriggeredSpeedReader = useRef(false);
+
   // Auto-rotate every 8s when running uncontrolled
   useEffect(() => {
-    if (isControlled || isPaused) return;
+    if (isControlled || isPaused || speedReaderActive) return;
     const interval = setInterval(() => {
       triggerTransition((prev) => (prev + 1) % moodboards.length);
     }, 8000);
     return () => clearInterval(interval);
-  }, [isControlled, isPaused, currentIndex, triggerTransition]);
+  }, [isControlled, isPaused, speedReaderActive, currentIndex, triggerTransition]);
 
   // Smart preloading: preload the next 2 and previous 1 images relative to currentIndex so crossfades are instant
   useEffect(() => {
@@ -203,6 +218,26 @@ export function MoodboardGallery({
 
   const handleShuffle = useCallback((e?: React.MouseEvent | React.TouchEvent) => {
     if (e) e.stopPropagation();
+    if (speedReaderActive) return;
+
+    const now = Date.now();
+    shuffleTimestamps.current.push(now);
+    if (shuffleTimestamps.current.length > 5) {
+      shuffleTimestamps.current.shift();
+    }
+
+    if (
+      !hasTriggeredSpeedReader.current &&
+      shuffleTimestamps.current.length >= 5 &&
+      now - shuffleTimestamps.current[0] <= 3000
+    ) {
+      hasTriggeredSpeedReader.current = true;
+      if (onSpeedReaderTrigger) {
+        onSpeedReaderTrigger();
+      }
+      return;
+    }
+
     triggerTransition((prev) => {
       if (moodboards.length <= 1) return prev;
       let nextIndex = prev;
@@ -211,10 +246,10 @@ export function MoodboardGallery({
       }
       return nextIndex;
     });
-  }, [triggerTransition]);
+  }, [triggerTransition, speedReaderActive, onSpeedReaderTrigger]);
 
   // Track if user is swiping vs tapping on mobile so tap shuffles instantly without double-triggering onClick
-  const isSwipingRef = React.useRef(false);
+  const isSwipingRef = useRef(false);
 
   const onTouchStart = (e: React.TouchEvent) => {
     isSwipingRef.current = false;
@@ -278,14 +313,25 @@ export function MoodboardGallery({
             onTouchEnd={onTouchEnd}
             onClick={handleImageAreaClick}
           >
+            {/* Speed Reader Easter Egg Message Card */}
+            {speedReaderActive ? (
+              <div className="absolute inset-0 w-full h-full bg-[var(--color-bg)] flex flex-col items-center justify-center p-6 text-center z-30 transition-opacity duration-400">
+                <p className="font-serif text-[var(--color-text-primary)] text-xl sm:text-2xl mb-3 leading-tight select-none">
+                  Slow down.
+                </p>
+                <p className="font-serif italic text-[var(--color-text-muted)] text-base sm:text-lg max-w-xs leading-relaxed select-none">
+                  The right one doesn&apos;t come from rushing.
+                </p>
+              </div>
+            ) : null}
+
             {moodboards.map((item, idx) => {
               const isActive = idx === currentIndex;
               return (
                 <div
                   key={item.src}
-                  className={`absolute inset-0 w-full h-full transition-opacity duration-400 ease-in-out ${
-                    isActive && !isTransitioning ? "opacity-100 z-10" : "opacity-0 z-0 pointer-events-none"
-                  }`}
+                  className={`absolute inset-0 w-full h-full transition-opacity duration-400 ease-in-out ${isActive && !isTransitioning ? "opacity-100 z-10" : "opacity-0 z-0 pointer-events-none"
+                    }`}
                 >
                   <Image
                     src={item.src}
@@ -303,9 +349,11 @@ export function MoodboardGallery({
             <button
               type="button"
               onClick={handleShuffle}
+              disabled={speedReaderActive || isTransitioning}
               aria-label="Shuffle moodboard image"
               title="Shuffle composition"
-              className="absolute bottom-3 right-3 z-20 w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-white/90 hover:bg-[var(--color-accent)] text-[var(--color-text-body)] hover:text-white shadow-md hover:shadow-lg border border-[var(--color-border)]/80 flex items-center justify-center transition-all duration-300 transform active:scale-90 cursor-pointer"
+              className={`absolute bottom-3 right-3 z-30 w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-white/90 hover:bg-[var(--color-accent)] text-[var(--color-text-body)] hover:text-white shadow-md hover:shadow-lg border border-[var(--color-border)]/80 flex items-center justify-center transition-all duration-300 transform active:scale-90 cursor-pointer ${speedReaderActive ? "opacity-30 pointer-events-none" : ""
+                }`}
             >
               <svg
                 xmlns="http://www.w3.org/2000/svg"
