@@ -122,8 +122,9 @@ export function SubscribeForm() {
         type="button"
         onClick={handleSend}
         disabled={status === "submitting"}
-        className={`mt-6 sm:mt-8 bg-[var(--color-accent)] hover:bg-[var(--color-accent-light)] text-white border border-white/10 px-8 py-3.5 rounded-full uppercase tracking-[0.2em] text-xs font-mono font-medium transition-all duration-300 shadow-lg hover:shadow-xl cursor-pointer select-none transform hover:-translate-y-0.5 ${status === "submitting" ? "animate-pulse opacity-80 cursor-wait" : ""
-          }`}
+        className={`mt-6 sm:mt-8 bg-[var(--color-accent)] hover:bg-[var(--color-accent-light)] text-white border border-white/10 px-8 py-3.5 rounded-full uppercase tracking-[0.2em] text-xs font-mono font-medium transition-all duration-300 shadow-lg hover:shadow-xl cursor-pointer select-none transform hover:-translate-y-0.5 ${
+          status === "submitting" ? "animate-pulse opacity-80 cursor-wait" : ""
+        }`}
       >
         {status === "submitting" ? "SENDING..." : "SEND IT →"}
       </button>
