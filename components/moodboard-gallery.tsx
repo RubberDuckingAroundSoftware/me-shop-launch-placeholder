@@ -185,9 +185,11 @@ export function MoodboardGallery({
     }
   }, [isControlled, onTransitionTo]);
 
-  // Touch swipe state for mobile
+  // Touch swipe and scroll state for mobile
   const [touchStartX, setTouchStartX] = useState<number | null>(null);
+  const [touchStartY, setTouchStartY] = useState<number | null>(null);
   const [touchEndX, setTouchEndX] = useState<number | null>(null);
+  const [touchEndY, setTouchEndY] = useState<number | null>(null);
   const minSwipeDistance = 40; // minimum distance in px to trigger swipe
 
   // Speed Reader tracking refs
@@ -265,47 +267,64 @@ export function MoodboardGallery({
     });
   }, [triggerTransition, speedReaderActive, onSpeedReaderTrigger]);
 
-  // Track if user is swiping vs tapping on mobile so tap shuffles instantly without double-triggering onClick
-  const isSwipingRef = useRef(false);
+  // Track if user is swiping or scrolling vs stationary tapping on mobile
+  const isSwipingOrScrollingRef = useRef(false);
 
   const onTouchStart = (e: React.TouchEvent) => {
-    isSwipingRef.current = false;
+    isSwipingOrScrollingRef.current = false;
     setTouchEndX(null);
+    setTouchEndY(null);
     setTouchStartX(e.targetTouches[0].clientX);
+    setTouchStartY(e.targetTouches[0].clientY);
   };
 
   const onTouchMove = (e: React.TouchEvent) => {
-    setTouchEndX(e.targetTouches[0].clientX);
-    if (touchStartX !== null && Math.abs(touchStartX - e.targetTouches[0].clientX) > 15) {
-      isSwipingRef.current = true;
+    const currentX = e.targetTouches[0].clientX;
+    const currentY = e.targetTouches[0].clientY;
+    setTouchEndX(currentX);
+    setTouchEndY(currentY);
+
+    if (touchStartX !== null && touchStartY !== null) {
+      const deltaX = Math.abs(currentX - touchStartX);
+      const deltaY = Math.abs(currentY - touchStartY);
+      if (deltaX > 10 || deltaY > 10) {
+        isSwipingOrScrollingRef.current = true;
+      }
     }
   };
 
   const onTouchEnd = (e: React.TouchEvent) => {
-    if (touchStartX === null) return;
+    if (touchStartX === null || touchStartY === null) return;
 
-    if (touchEndX === null || Math.abs(touchStartX - touchEndX) <= minSwipeDistance) {
-      isSwipingRef.current = true;
-      handleShuffle(e);
+    const finalEndX = touchEndX ?? touchStartX;
+    const finalEndY = touchEndY ?? touchStartY;
+    const deltaX = Math.abs(finalEndX - touchStartX);
+    const deltaY = Math.abs(finalEndY - touchStartY);
+
+    // 1. If user moved their finger vertically or horizontally across the threshold
+    if (isSwipingOrScrollingRef.current || deltaX > 10 || deltaY > 10) {
+      // If horizontal distance exceeded minSwipeDistance and horizontal movement exceeded vertical movement, it is a left/right swipe
+      if (deltaX > minSwipeDistance && deltaX > deltaY) {
+        const distance = touchStartX - finalEndX;
+        if (distance > minSwipeDistance) {
+          triggerTransition((prev) => (prev + 1) % moodboards.length);
+        } else if (distance < -minSwipeDistance) {
+          triggerTransition((prev) => (prev - 1 + moodboards.length) % moodboards.length);
+        }
+      }
+      // Whether it was a horizontal swipe OR a vertical page scroll, mark as scrolled/swiped to block onClick and DO NOT shuffle!
+      isSwipingOrScrollingRef.current = true;
       return;
     }
 
-    const distance = touchStartX - touchEndX;
-    const isLeftSwipe = distance > minSwipeDistance;
-    const isRightSwipe = distance < -minSwipeDistance;
-
-    if (isLeftSwipe) {
-      isSwipingRef.current = true;
-      triggerTransition((prev) => (prev + 1) % moodboards.length);
-    } else if (isRightSwipe) {
-      isSwipingRef.current = true;
-      triggerTransition((prev) => (prev - 1 + moodboards.length) % moodboards.length);
-    }
+    // 2. Otherwise, finger remained stationary (<= 10px): this is an intentional tap!
+    isSwipingOrScrollingRef.current = true; // block synthetic onClick so it does not double-shuffle
+    handleShuffle(e);
   };
 
   const handleImageAreaClick = useCallback((e: React.MouseEvent) => {
-    if (isSwipingRef.current) {
-      isSwipingRef.current = false;
+    if (isSwipingOrScrollingRef.current) {
+      isSwipingOrScrollingRef.current = false;
       return;
     }
     handleShuffle(e);
