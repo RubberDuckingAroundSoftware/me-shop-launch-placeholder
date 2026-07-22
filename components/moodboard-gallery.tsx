@@ -2,6 +2,14 @@
 
 import React, { useState, useEffect, useCallback, useRef } from "react";
 import Image from "next/image";
+import { resolveStartIndex } from "@/lib/moodboard-start";
+
+// Shared with the per-visit start script, which rewrites these elements before
+// React hydrates. See lib/moodboard-start.ts.
+export const SLIDE_ID_PREFIX = "moodboard-slide-";
+const SLIDE_BASE_CLASS = "absolute inset-0 w-full h-full transition-opacity duration-400 ease-in-out";
+export const SLIDE_ACTIVE_CLASS = `${SLIDE_BASE_CLASS} opacity-100 z-10`;
+export const SLIDE_INACTIVE_CLASS = `${SLIDE_BASE_CLASS} opacity-0 z-0 pointer-events-none`;
 
 export interface MoodboardImage {
   src: string;
@@ -160,7 +168,7 @@ export function MoodboardGallery({
   count = 0,
   showCounter = false,
 }: MoodboardGalleryProps = {}) {
-  const [internalIndex, setInternalIndex] = useState(0);
+  const [internalIndex, setInternalIndex] = useState(() => resolveStartIndex(moodboards.length));
   const [internalTransitioning, setInternalTransitioning] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
 
@@ -195,7 +203,7 @@ export function MoodboardGallery({
   // Speed Reader tracking refs
   const shuffleTimestamps = useRef<number[]>([]);
   const hasTriggeredSpeedReader = useRef(false);
-  const recentIndicesRef = useRef<number[]>([0]);
+  const recentIndicesRef = useRef<number[]>([currentIndex]);
 
   // Keep track of shown images so manual shuffle doesn't repeat recent ones
   useEffect(() => {
@@ -366,8 +374,10 @@ export function MoodboardGallery({
               return (
                 <div
                   key={item.src}
-                  className={`absolute inset-0 w-full h-full transition-opacity duration-400 ease-in-out ${isActive && !isTransitioning ? "opacity-100 z-10" : "opacity-0 z-0 pointer-events-none"
-                    }`}
+                  id={`${SLIDE_ID_PREFIX}${idx}`}
+                  data-catchphrase={item.catchphrase}
+                  suppressHydrationWarning
+                  className={isActive && !isTransitioning ? SLIDE_ACTIVE_CLASS : SLIDE_INACTIVE_CLASS}
                 >
                   <Image
                     src={item.src}

@@ -1,9 +1,32 @@
 "use client";
 
 import React, { useState, useCallback, useEffect, useRef } from "react";
-import { MoodboardGallery, moodboards } from "./moodboard-gallery";
+import {
+  MoodboardGallery,
+  moodboards,
+  SLIDE_ID_PREFIX,
+  SLIDE_ACTIVE_CLASS,
+  SLIDE_INACTIVE_CLASS,
+} from "./moodboard-gallery";
+import { InlineScript } from "./inline-script";
+import { buildStartIndexScript, resolveStartIndex, SEEN_STORAGE_KEY } from "@/lib/moodboard-start";
 
-const STORAGE_KEY = "meshop_seen_moodboards";
+const STORAGE_KEY = SEEN_STORAGE_KEY;
+
+// Rewritten by the per-visit start script before hydration. See lib/moodboard-start.ts.
+const CATCHPHRASE_ID = "hero-catchphrase";
+const CATCHPHRASE_PERIOD_ID = "hero-catchphrase-period";
+const HIDDEN_CLASS = "hidden";
+
+const startIndexScript = buildStartIndexScript({
+  total: moodboards.length,
+  slideIdPrefix: SLIDE_ID_PREFIX,
+  activeClassName: SLIDE_ACTIVE_CLASS,
+  inactiveClassName: SLIDE_INACTIVE_CLASS,
+  catchphraseId: CATCHPHRASE_ID,
+  catchphrasePeriodId: CATCHPHRASE_PERIOD_ID,
+  hiddenClassName: HIDDEN_CLASS,
+});
 
 function useCollectorCount() {
   const [seen, setSeen] = useState<Set<number>>(() => new Set());
@@ -135,7 +158,9 @@ function LetterMorph({
 }
 
 export function Hero() {
-  const [currentIndex, setCurrentIndex] = useState(0);
+  // Every visit opens on a different card; the inline script below has already
+  // put this one on screen by the time React hydrates.
+  const [currentIndex, setCurrentIndex] = useState(() => resolveStartIndex(moodboards.length));
   const [isTransitioning, setIsTransitioning] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
 
@@ -150,7 +175,7 @@ export function Hero() {
   const longStayTimer = useRef<NodeJS.Timeout | null>(null);
   const hasTriggeredLongStay = useRef(false);
   const hasShownNightOwl = useRef(false);
-  const recentIndicesRef = useRef<number[]>([0]);
+  const recentIndicesRef = useRef<number[]>([currentIndex]);
   const hasShownIsComplete = useRef(false);
 
   useEffect(() => {
@@ -315,10 +340,17 @@ export function Hero() {
                       />
                     ) : (
                       <>
-                        {effectiveCatchphrase}
-                        {!/[.!?]$/.test(effectiveCatchphrase) && (
-                          <span className="not-italic font-sans text-[var(--color-text-body)]">.</span>
-                        )}
+                        <span id={CATCHPHRASE_ID} suppressHydrationWarning>
+                          {effectiveCatchphrase}
+                        </span>
+                        <span
+                          id={CATCHPHRASE_PERIOD_ID}
+                          suppressHydrationWarning
+                          className={`not-italic font-sans text-[var(--color-text-body)]${/[.!?]$/.test(effectiveCatchphrase) ? ` ${HIDDEN_CLASS}` : ""
+                            }`}
+                        >
+                          .
+                        </span>
                       </>
                     )}
                   </span>
@@ -342,6 +374,10 @@ export function Hero() {
           />
         </div>
       </div>
+
+      {/* Runs during HTML parsing, after the markup it corrects: swaps in this
+          visit's card before the browser paints card 0. */}
+      <InlineScript html={startIndexScript} />
     </section>
   );
 }
